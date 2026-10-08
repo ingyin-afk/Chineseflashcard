@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WAN MEI ACADEMY - Chinese Flashcard Game</title>
+<style>
+* {
+box-sizing: border-box;
+margin: 0;
+padding: 0;
+user-select: none;
+}
+body {
+font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+color: #fff;
+min-height: 100vh;
+display: flex;
+flex-direction: column;
+align-items: center;
+padding: 15px;
+}
+header {
+text-align: center;
+margin-bottom: 15px;
+}
+h1 {
+font-size: 24px;
+color: #f1c40f;
+letter-spacing: 1px;
+}
+.subtitle {
+font-size: 14px;
+color: #bdc3c7;
+margin-top: 4px;
+}
+.instructions {
+background: rgba(255, 255, 255, 0.1);
+padding: 10px 15px;
+border-radius: 8px;
+font-size: 13px;
+margin-bottom: 15px;
+text-align: center;
+max-width: 500px;
+line-height: 1.4;
+}
+.controls {
+display: flex;
+gap: 10px;
+margin-bottom: 20px;
+flex-wrap: wrap;
+justify-content: center;
+}
+.btn {
+background: #e74c3c;
+color: white;
+border: none;
+padding: 10px 18px;
+border-radius: 20px;
+font-weight: bold;
+cursor: pointer;
+box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+transition: all 0.2s;
+font-size: 14px;
+}
+.btn:active {
+transform: scale(0.95);
+}
+.btn-secondary {
+background: #3498db;
+}
+.grid {
+display: grid;
+grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+gap: 15px;
+width: 100%;
+max-width: 800px;
+}
+.card-container {
+perspective: 1000px;
+height: 170px;
+}
+.card {
+width: 100%;
+height: 100%;
+position: relative;
+transform-style: preserve-3d;
+transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+cursor: pointer;
+}
+.card.flipped {
+transform: rotateY(180deg);
+}
+.card-face {
+position: absolute;
+width: 100%;
+height: 100%;
+backface-visibility: hidden;
+border-radius: 12px;
+display: flex;
+flex-direction: column;
+justify-content: center;
+align-items: center;
+padding: 10px;
+box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+border: 2px solid #f1c40f;
+}
+.card-front {
+background: linear-gradient(145deg, #c0392b, #8e44ad);
+color: #fff;
+}
+.card-pattern {
+font-size: 32px;
+opacity: 0.8;
+}
+.card-back {
+background: #ffffff;
+color: #2c3e50;
+transform: rotateY(180deg);
+text-align: center;
+}
+.step1 {
+font-size: 18px;
+font-weight: bold;
+color: #27ae60;
+}
+.step2-hanzi {
+font-size: 26px;
+font-weight: bold;
+color: #e74c3c;
+margin-top: 5px;
+}
+.step2-pinyin {
+font-size: 14px;
+color: #7f8c8d;
+}
+</style>
+</head>
+<body>
+
+<header>
+<h1>WAN MEI ACADEMY</h1>
+<div class="subtitle">Chinese Flashcard Game • 完美</div>
+</header>
+
+<div class="instructions">
+💡 <b>ကစားနည်း :</b> ဖဲချပ်ကို <b>၁ ချက်နှိပ်ပါ</b> ➔ မြန်မာအဓိပ္ပာယ်ပေါ်မည်။ <br><b>၂ ချက်မြောက် နှိပ်ပါ</b> ➔ Hanzi & Pinyin ပေါ်လာမည်။
+</div>
+
+<div class="controls">
+<button class="btn" onclick="shuffleCards()">🔀 Shuffle & Deal</button>
+<button class="btn btn-secondary" onclick="resetCards()">🔄 Reset</button>
+</div>
+
+<div class="grid" id="cardGrid"></div>
+
+<script>
+const vocabData = [
+{ hz: '中国人', py: 'zhōng guó rén', mm: 'တရုတ်လူမျိုး' },
+{ hz: '美国人', py: 'měi guó rén', mm: 'အမေရိကန်လူမျိုး' },
+{ hz: '老师', py: 'lǎo shī', mm: 'ဆရာ / ဆရာမ' },
+{ hz: '学生', py: 'xué shēng', mm: 'ကျောင်းသား' },
+{ hz: '今天', py: 'jīn tiān', mm: 'ဒီနေ့' },
+{ hz: '邮局', py: 'yóu jú', mm: 'စာတိုက်' },
+{ hz: '银行', py: 'yín háng', mm: 'ဘဏ်' },
+{ hz: '天安门', py: 'tiān ān mén', mm: 'ထျန်းအန်းမင်' },
+{ hz: '是', py: 'shì', mm: 'ဖြစ်သည် / ဟုတ်သည်' },
+{ hz: '叫', py: 'jiào', mm: 'ခေါ်သည်' },
+{ hz: '名字', py: 'míng zi', mm: 'အမည်' },
+{ hz: '我', py: 'wǒ', mm: 'ကျွန်တော် / ကျွန်မ' },
+{ hz: '他', py: 'tā', mm: 'သူ (အမျိုးသား)' },
+{ hz: '她', py: 'tā', mm: 'သူမ (အမျိုးသမီး)' }
+ ];
+
+let cardStates = [];
+
+// Audio Synth for Card Sound Effect
+function playFlipSound() {
+try {
+const ctx = new (window.AudioContext || window.webkitAudioContext)();
+const osc = ctx.createOscillator();
+const gain = ctx.createGain();
+osc.type = 'sine';
+osc.frequency.setValueAtTime(200, ctx.currentTime);
+osc.frequency.exponentialRampToValueAtTime(600, ctx.currentTime + 0.08);
+gain.gain.setValueAtTime(0.3, ctx.currentTime);
+gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.08);
+osc.connect(gain);
+gain.connect(ctx.destination);
+osc.start();
+osc.stop(ctx.currentTime + 0.08);
+} catch(e) {}
+}
+
+function renderCards(data) {
+const grid = document.getElementById('cardGrid');
+grid.innerHTML = '';
+cardStates = new Array(data.length).fill(0);
+
+data.forEach((item, index) => {
+const cardBox = document.createElement('div');
+cardBox.className = 'card-container';
+cardBox.innerHTML = &lt;div class="card" id="card-${index}" onclick="handleCardClick(${index})"&gt; &lt;div class="card-face card-front"&gt; &lt;div class="card-pattern"&gt;🎴&lt;/div&gt; &lt;div style="font-size:12px; margin-top:8px;"&gt;WAN MEI&lt;/div&gt; &lt;/div&gt; &lt;div class="card-face card-back" id="content-${index}">
+</div>
+</div>
+`;
+grid.appendChild(cardBox);
+});
+}
+
+function handleCardClick(index) {
+playFlipSound();
+const card = document.getElementById(card-${index}); const content = document.getElementById(content-${index});
+const item = currentData[index];
+
+if (cardStates[index] === 0) {
+cardStates[index] = 1;
+card.classList.add('flipped');
+content.innerHTML = <div class="step1"&gt;${item.mm}</div>; } else if (cardStates[index] === 1) { cardStates[index] = 2; content.innerHTML =
+<div class="step1" style="font-size:14px; color:#8e44ad;">{item.hz}</div>
+<div class="step2-pinyin">${item.py}</div>
+`;
+}
+}
+
+let currentData = [...vocabData];
+
+function shuffleCards() {
+playFlipSound();
+currentData.sort(() => Math.random() - 0.5);
+renderCards(currentData);
+}
+
+function resetCards() {
+playFlipSound();
+currentData = [...vocabData];
+renderCards(currentData);
+}
+
+// Initial Load
+renderCards(currentData);
+</script>
+</body>
+</html>
